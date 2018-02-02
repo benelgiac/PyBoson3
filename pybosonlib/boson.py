@@ -23,9 +23,10 @@
 
 import serial,sys
 from _thread import allocate_lock
-from pybosonlib.flirprotocols import Frame, Fbp
+from pyboson.pybosonlib.flirprotocols import Frame, Fbp
 from time import sleep
 import struct
+from collections import OrderedDict
 
 class Boson():
         
@@ -38,18 +39,18 @@ class Boson():
 
     }
     
-    LUT = {
-        0x00000000   : 'WHITEHOT',
-        0x00000001   : 'BLACKHOT',
-        0x00000002   : 'RAINBOW',
-        0x00000003   : 'RAINBOW_HC',
-        0x00000004   : 'IRONBOW',
-        0x00000005   : 'LAVA',
-        0x00000006   : 'ARCTIC',
-        0x00000007   : 'GLOBOW',
-        0x00000008   : 'GRADEDFIRE',
-        0x00000009   : 'HOTTEST',
-    }
+    LUT = OrderedDict([
+        (0x00000000   , 'WHITEHOT'),
+        (0x00000001   , 'BLACKHOT'),
+        (0x00000002   , 'RAINBOW'),
+        (0x00000003   , 'RAINBOW_HC'),
+        (0x00000004   , 'IRONBOW'),
+        (0x00000005   , 'LAVA'),
+        (0x00000006   , 'ARCTIC'),
+        (0x00000007   , 'GLOBOW'),
+        (0x00000008   , 'GRADEDFIRE'),
+        (0x00000009   , 'HOTTEST'),
+    ])
     
     #---------- Methods related to serial port handling ---------------
     def __init__(self,portname="/dev/ttyACM0", timeout=1):
@@ -163,7 +164,7 @@ class Boson():
         return self.sendCmdAndGetReply('GETSERIAL')
     
     def getColorLut(self):
-        return self.sendCmdAndGetReply('GETCOLORLUT')
+        return self.LUT[self.sendCmdAndGetReply('GETCOLORLUT')]
         
     def getPartNumber(self):
         return self.sendCmdAndGetReply('GETPARTNUMBER')
@@ -178,7 +179,7 @@ class Boson():
         for data , lutstring in self.LUT.items():
             self.setColorLut(lutstring)
             sleep(1)
-            print ('LUT is %s' % self.LUT[self.getColorLut()])
+            print ('LUT is %s' % self.getColorLut())
             sleep(1)
         return 
 
