@@ -31,10 +31,10 @@ class Boson():
     
     # Format: Command Hex Code, Byte Size (command, response, get, set)
     COMMANDS = {
-        'GETSERIAL'      :    bytearray([0x00, 0x05, 0x00, 0x02]),
-        'GETCOLORLUT'    :    bytearray([0x00, 0x0B, 0x00, 0x04]),
-        'SETCOLORLUT'    :    bytearray([0x00, 0x0B, 0x00, 0x03]),
-        'GETPARTNUMBER'  :    bytearray([0x00, 0x05, 0x00, 0x04]),
+        'GETSERIAL'      :    { 'id': bytearray([0x00, 0x05, 0x00, 0x02]), 'retbytes': 4},
+        'GETCOLORLUT'    :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x04]), 'retbytes': 4},
+        'SETCOLORLUT'    :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x03]), 'retbytes': 0},
+        'GETPARTNUMBER'  :    { 'id': bytearray([0x00, 0x05, 0x00, 0x04]), 'retbytes': 20},
 
     }
     
@@ -83,15 +83,16 @@ class Boson():
 
 
     def recv_packet(self,extra_title=None):
-        # read up to 16 bytes until 0xff
+        # read up to 32 bytes until 0xff
         packet=b''
         count=0
-        while count<32:
+        while count<64:
             s=self.serialport.read(1)
             if s:
                 count+=1
                 packet=packet+bytes(s)
             else:
+                import pdb;pdb.set_trace()
                 print ("ERROR: Timeout waiting for reply")
                 break
             if s==b'\xae':
@@ -129,7 +130,7 @@ class Boson():
         return reply
         
     def _construct_cmd(self, _command_name, _data = bytearray()):
-        payload = Fbp(self.COMMANDS[_command_name], _data)
+        payload = Fbp(self.COMMANDS[_command_name]['id'], _data)
         
         frame = Frame(payload.raw())
         
@@ -145,22 +146,30 @@ class Boson():
             return struct.unpack('>I',reply[start:end])[0]
         else:
             return reply[start:end]
+    
+    def sendCmdAndGetReply(self, commandname, data = bytearray()):
+        retdata = b''
+        reply = self.send_packet(self._construct_cmd(commandname, data))
+        if self.COMMANDS[commandname]['retbytes']==4:
+             retdata = self.getDataFromReply(reply, self.COMMANDS[commandname]['retbytes'],toint=True)
+        elif self.COMMANDS[commandname]['retbytes']!=0:
+             retdata = self.getDataFromReply(reply, self.COMMANDS[commandname]['retbytes'],toint=False)
+        return retdata
+    
+
         
     ############ Functions ########################
     def getSerial(self):
-        reply = self.send_packet(self._construct_cmd('GETSERIAL'))
-        return self.getDataFromReply(reply)
+        return self.sendCmdAndGetReply('GETSERIAL')
     
     def getColorLut(self):
-        reply = self.send_packet(self._construct_cmd('GETCOLORLUT'))
-        return self.LUT[self.getDataFromReply(reply)]
+        return self.sendCmdAndGetReply('GETCOLORLUT')
         
     def getPartNumber(self):
-        reply = self.send_packet(self._construct_cmd('GETPARTNUMBER'))
-        return self.getDataFromReply(reply, lenght=20, toint=False)
+        return self.sendCmdAndGetReply('GETPARTNUMBER')
         
     def setColorLut(self, data):
-        return self.send_packet(self._construct_cmd('SETCOLORLUT', data))
+        return self.sendCmdAndGetReply('SETCOLORLUT', data)
         
     def test_LUT(self):
         #import pdb;pdb.set_trace()
@@ -172,38 +181,31 @@ class Boson():
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x02]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x02]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x03]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x03]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x04]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x04]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x05]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x05]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x06]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x06]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x07]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x07]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         sleep(1)
-        _cmd = self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x08]))
-        self.send_packet(_cmd)
+        self.setColorLut(bytearray([0x00, 0x00, 0x00, 0x08]))
         sleep(1)
         print ('LUT is %s' % self.getColorLut())
         #print ('Built command %s' %(_cmd))
