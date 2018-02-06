@@ -32,11 +32,19 @@ class Boson():
         
     # Format: Command Hex Code, Byte Size (command, response, get, set)
     COMMANDS = {
-        'GETSERIAL'      :    { 'id': bytearray([0x00, 0x05, 0x00, 0x02]), 'retbytes': 4},
-        'GETCOLORLUT'    :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x04]), 'retbytes': 4},
-        'SETCOLORLUT'    :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x03]), 'retbytes': 0},
-        'GETPARTNUMBER'  :    { 'id': bytearray([0x00, 0x05, 0x00, 0x04]), 'retbytes': 20},
-
+        'GETSERIAL'           :    { 'id': bytearray([0x00, 0x05, 0x00, 0x02]), 'retbytes': 4},
+        'GETCOLORLUT'         :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x04]), 'retbytes': 4, 'type': 'int'},
+        'SETCOLORLUT'         :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x03]), 'retbytes': 0},
+        'GETPARTNUMBER'       :    { 'id': bytearray([0x00, 0x05, 0x00, 0x04]), 'retbytes': 20},
+        'GETGAINMODE'         :    { 'id': bytearray([0x00, 0x05, 0x00, 0x15]), 'retbytes': 4, 'type': 'int'},
+        'SETGAINMODE'         :    { 'id': bytearray([0x00, 0x05, 0x00, 0x14]), 'retbytes': 0},
+        'ACGSETLINEARPERCENT' :    { 'id': bytearray([0x00, 0x09, 0x00, 0x03]), 'retbytes': 0},
+        'ACGGETLINEARPERCENT' :    { 'id': bytearray([0x00, 0x09, 0x00, 0x04]), 'retbytes': 4, 'type': 'float'},
+        'ACGGETOUTLIERCUT'    :    { 'id': bytearray([0x00, 0x09, 0x00, 0x06]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETOUTLIERCUT'    :    { 'id': bytearray([0x00, 0x09, 0x00, 0x05]), 'retbytes': 0},
+        'ACGGETMAXGAIN'       :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0A]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETMAXGAIN'       :    { 'id': bytearray([0x00, 0x09, 0x00, 0x09]), 'retbytes': 0},
+        'ACGRESTOREDEFAULT'   :    { 'id': bytearray([0x00, 0x05, 0x00, 0x1B]), 'retbytes': 0},
     }
     
     LUT = OrderedDict([
@@ -50,6 +58,14 @@ class Boson():
         (0x00000007   , 'GLOBOW'),
         (0x00000008   , 'GRADEDFIRE'),
         (0x00000009   , 'HOTTEST'),
+    ])
+    
+    GAINMODE = OrderedDict([
+        (0x00000000   , 'HIGH GAIN'),
+        (0x00000001   , 'LOW GAIN'),
+        (0x00000002   , 'AUTO GAIN'),
+        (0x00000003   , 'DUAL GAIN'),
+        (0x00000004   , 'MANUAL GAIN'),
     ])
     
     #---------- Methods related to serial port handling ---------------
@@ -142,11 +158,18 @@ class Boson():
         
     ####### Poor man's data extractor. Won't work always because of
     # byte stuffing. Just use for test/debug purposes
-    def getDataFromReply(self, reply, lenght=4, toint=True):
+    def getDataFromReply(self, reply, commandname):
+        _type = None
+        length = self.COMMANDS[commandname]['retbytes']
+        if 'type' in self.COMMANDS[commandname]:
+            _type = self.COMMANDS[commandname]['type']
+        
         end = -3
-        start = end-lenght
-        if toint == True:
-            return struct.unpack('>I',reply[start:end])[0]
+        start = end-length
+        if _type == 'int':
+            return struct.unpack('>i',reply[start:end])[0]
+        elif _type == 'float':
+            return struct.unpack('>f',reply[start:end])[0]
         else:
             return reply[start:end]
     
@@ -154,9 +177,11 @@ class Boson():
         retdata = b''
         reply = self.send_packet(self._construct_cmd(commandname, data))
         if self.COMMANDS[commandname]['retbytes']==4:
-             retdata = self.getDataFromReply(reply, self.COMMANDS[commandname]['retbytes'],toint=True)
+             retdata = self.getDataFromReply(reply, commandname)
         elif self.COMMANDS[commandname]['retbytes']!=0:
-             retdata = self.getDataFromReply(reply, self.COMMANDS[commandname]['retbytes'],toint=False)
+             retdata = self.getDataFromReply(reply, commandname)
+
+        #import pdb;pdb.set_trace()
         return retdata
 
     #---------- Methods supposed to be invoked from users --------------
@@ -170,7 +195,34 @@ class Boson():
         return self.sendCmdAndGetReply('GETPARTNUMBER')
         
     def setColorLut(self, lutstring):
-        return self.sendCmdAndGetReply('SETCOLORLUT', _intToByteArray(_getKeyFromValue(self.LUT,lutstring)))
+        return self.sendCmdAndGetReply('SETCOLORLUT', ToByteArray(_getKeyFromValue(self.LUT, lutstring)))
+        
+    def getGainState(self):
+        return self.GAINMODE[self.sendCmdAndGetReply('GETGAINMODE')]
+        
+    def setGainState(self, gainstring):
+        return self.sendCmdAndGetReply('SETGAINMODE', ToByteArray(_getKeyFromValue(self.GAINMODE, gainstring)))
+        
+    def getAcgLinearPercent(self):
+        return self.sendCmdAndGetReply('ACGGETLINEARPERCENT')
+    
+    def getAcgOutlierCut(self):
+        return self.sendCmdAndGetReply('ACGGETOUTLIERCUT')    
+
+    def getAcgMaxGain(self):
+        return self.sendCmdAndGetReply('ACGGETMAXGAIN')        
+        
+    def setAcgMaxGain(self, value):
+        return self.sendCmdAndGetReply('ACGSETMAXGAIN', ToByteArray(value))
+        
+    def setLinearPercent(self, value):
+        return self.sendCmdAndGetReply('ACGSETLINEARPERCENT', ToByteArray(value))
+        
+    def setOutlierCut(self, value):
+        return self.sendCmdAndGetReply('ACGSETOUTLIERCUT', ToByteArray(value))
+        
+    def restoreDefaults(self):
+        return self.sendCmdAndGetReply('ACGRESTOREDEFAULT')
         
     def test_LUT(self):
         print ('Part number is %s' % self.getPartNumber())
@@ -190,11 +242,13 @@ def _getKeyFromValue(_d, _value):
             return k
     return None
 
-def _intToByteArray(_i):
-    assert (isinstance(_i, int))
-        
-    _b1 = bytearray([(_i&0xFF000000) >> 24])
-    _b2 = bytearray([(_i&0x00FF0000) >> 16])
-    _b3 = bytearray([(_i&0x0000FF00) >> 8])
-    _b4 = bytearray([(_i&0x000000FF) ])
-    return _b1+_b2+_b3+_b4
+def ToByteArray(_i):
+    frmt = ''
+    if isinstance(_i, int):
+        frmt = '>i'
+    elif isinstance(_i, float):
+        frmt = '>f'
+    else:
+        assert(True)
+    
+    return struct.pack(frmt,_i)
