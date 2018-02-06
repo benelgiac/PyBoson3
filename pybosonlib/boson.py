@@ -44,6 +44,10 @@ class Boson():
         'ACGSETOUTLIERCUT'    :    { 'id': bytearray([0x00, 0x09, 0x00, 0x05]), 'retbytes': 0},
         'ACGGETMAXGAIN'       :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0A]), 'retbytes': 4, 'type': 'float'},
         'ACGSETMAXGAIN'       :    { 'id': bytearray([0x00, 0x09, 0x00, 0x09]), 'retbytes': 0},
+        'ACGGETDUMPINGFACTOR' :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0C]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETDUMPINGFACTOR' :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0B]), 'retbytes': 0},
+        'ACGGETGAMMA'         :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0E]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETGAMMA'         :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0D]), 'retbytes': 0},
         'ACGRESTOREDEFAULT'   :    { 'id': bytearray([0x00, 0x05, 0x00, 0x1B]), 'retbytes': 0},
     }
     
@@ -166,6 +170,8 @@ class Boson():
         
         end = -3
         start = end-length
+        status = start - 4
+        print ('Command status is %s' % reply[status:start])
         if _type == 'int':
             return struct.unpack('>i',reply[start:end])[0]
         elif _type == 'float':
@@ -178,7 +184,8 @@ class Boson():
         reply = self.send_packet(self._construct_cmd(commandname, data))
         if self.COMMANDS[commandname]['retbytes']==4:
              retdata = self.getDataFromReply(reply, commandname)
-        elif self.COMMANDS[commandname]['retbytes']!=0:
+        #elif self.COMMANDS[commandname]['retbytes']!=0:
+        else:
              retdata = self.getDataFromReply(reply, commandname)
 
         #import pdb;pdb.set_trace()
@@ -203,16 +210,16 @@ class Boson():
     def setGainState(self, gainstring):
         return self.sendCmdAndGetReply('SETGAINMODE', ToByteArray(_getKeyFromValue(self.GAINMODE, gainstring)))
         
-    def getAcgLinearPercent(self):
+    def getAgcLinearPercent(self):
         return self.sendCmdAndGetReply('ACGGETLINEARPERCENT')
     
-    def getAcgOutlierCut(self):
+    def getAgcOutlierCut(self):
         return self.sendCmdAndGetReply('ACGGETOUTLIERCUT')    
 
-    def getAcgMaxGain(self):
+    def getAgcMaxGain(self):
         return self.sendCmdAndGetReply('ACGGETMAXGAIN')        
         
-    def setAcgMaxGain(self, value):
+    def setAgcMaxGain(self, value):
         return self.sendCmdAndGetReply('ACGSETMAXGAIN', ToByteArray(value))
         
     def setLinearPercent(self, value):
@@ -223,6 +230,18 @@ class Boson():
         
     def restoreDefaults(self):
         return self.sendCmdAndGetReply('ACGRESTOREDEFAULT')
+        
+    def setAgcDumpingFactor(self, value):
+        return self.sendCmdAndGetReply('ACGSETDUMPINGFACTOR', ToByteArray(value))
+        
+    def getAgcDumpingFactor(self):
+        return self.sendCmdAndGetReply('ACGGETDUMPINGFACTOR')
+        
+    def setAgcGamma(self,value):
+        return self.sendCmdAndGetReply('ACGSETGAMMA', ToByteArray(value))
+        
+    def getAgcGamma(self):
+        return self.sendCmdAndGetReply('ACGGETGAMMA')
         
     def test_LUT(self):
         print ('Part number is %s' % self.getPartNumber())
