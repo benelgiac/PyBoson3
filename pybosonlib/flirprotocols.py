@@ -7,6 +7,12 @@ BYTESTUFF = {
     0xAE: [ 0x9E, 0xA1]
 }
 
+BYTESDESTUFF = { 
+    b'\x9E\x81' : 0x8E,
+    b'\x9E\x91' : 0x9E,
+    b'\x9E\xA1' : 0xAE
+    }
+
 #renders a dict into bytearray 
 def renderToByteArray(fields):
     return bytearray().join([ba for k, ba in fields.items() ])
@@ -21,6 +27,27 @@ def byteStuff(ba):
             stuffed.append( byte)
     
     return bytearray(stuffed)
+
+def byteUnstuff(ba):
+    unstuffed = []
+    skipme = False
+    
+    for pos in range(0, len(ba)-1):
+        twobytes = ba[pos: pos+2]
+        if bytes(twobytes) in BYTESDESTUFF:
+            unstuffed.append(BYTESDESTUFF[bytes(ba[pos: pos+2])])
+            skipme=True
+        else:
+            if not skipme:
+                unstuffed.append(ba[pos])
+            else:
+                skipme=False
+
+    if not skipme:
+        unstuffed.append(ba[-1])
+    
+    return bytearray(unstuffed)
+        
     
  # Returns: two bytes hex encoded string tuple (MSB, LSB)
 def crc_to_hex(_crc):
