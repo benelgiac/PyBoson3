@@ -48,6 +48,10 @@ class Boson():
         'ACGSETDUMPINGFACTOR' :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0B]), 'retbytes': 0},
         'ACGGETGAMMA'         :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0E]), 'retbytes': 4, 'type': 'float'},
         'ACGSETGAMMA'         :    { 'id': bytearray([0x00, 0x09, 0x00, 0x0D]), 'retbytes': 0},
+        'ACGGETDTBR'          :    { 'id': bytearray([0x00, 0x09, 0x00, 0x16]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETDTBR'          :    { 'id': bytearray([0x00, 0x09, 0x00, 0x15]), 'retbytes': 0},
+        'ACGGETSIGMAR'        :    { 'id': bytearray([0x00, 0x09, 0x00, 0x18]), 'retbytes': 4, 'type': 'float'},
+        'ACGSETSIGMAR'        :    { 'id': bytearray([0x00, 0x09, 0x00, 0x17]), 'retbytes': 0},
         'ACGRESTOREDEFAULT'   :    { 'id': bytearray([0x00, 0x05, 0x00, 0x1B]), 'retbytes': 0},
     }
     
@@ -242,6 +246,21 @@ class Boson():
         
     def getAgcGamma(self):
         return self.sendCmdAndGetReply('ACGGETGAMMA')
+        
+    def setAgcDtbr(self,value):
+        return self.sendCmdAndGetReply('ACGSETDTBR', ToByteArray(value))
+        
+    def getAgcDtbr(self):
+        return self.sendCmdAndGetReply('ACGGETDTBR')
+        
+    def setAgcSigmar(self,value):
+        return self.sendCmdAndGetReply('ACGSETSIGMAR', ToByteArray(value))
+        
+    def getAgcSigmar(self):
+        return self.sendCmdAndGetReply('ACGGETSIGMAR')
+        
+        
+        setAgcDtbr
         
     def test_LUT(self):
         print ('Part number is %s' % self.getPartNumber())
