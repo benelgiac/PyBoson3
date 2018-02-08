@@ -23,7 +23,7 @@
 
 import serial,sys
 from _thread import allocate_lock
-from pyboson.pybosonlib.flirprotocols import Frame, Fbp, byteUnstuff
+from pyboson.pybosonlib.flirprotocols import Frame, Fbp, byteUnstuff, renderToByteArray
 from time import sleep
 import struct
 from collections import OrderedDict
@@ -63,6 +63,9 @@ class Boson():
         'ACGRESTOREDEFAULT'   :    { 'id': bytearray([0x00, 0x05, 0x00, 0x1B]), 'retbytes': 0},
         'FPATEMPDEDCx10'      :    { 'id': bytearray([0x00, 0x05, 0x00, 0x30]), 'retbytes': 2, 'type': 'short'},
         'FPAGETTEMPTABLE'     :    { 'id': bytearray([0x00, 0x02, 0x00, 0x20]), 'retbytes': 64},
+        'SCALERGETZOOM'       :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x03]), 'retbytes': 12},
+        'SCALERGETMAXZOOM'    :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x03]), 'retbytes': 4, 'type': 'int' },
+        'SCALERSETZOOM'       :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x02]), 'retbytes': 0},
     }
     
     LUT = OrderedDict([
@@ -90,6 +93,26 @@ class Boson():
         (0x00000001   , 'TRUE'),
         (0x00000000   , 'FALSE'),
     ])
+    
+    class SCALER_ZOOM_PARAMS ():
+        
+        fields = OrderedDict([
+            ('zoom'      , 0x00000000),
+            ('xCenter'   , 0x00000000),
+            ('yCenter'   , 0x00000000),
+        ])
+        def toByteArray(self):
+            return bytearray(struct.pack('>i',self.fields['zoom']))+ \
+            bytearray(struct.pack('>i',self.fields['xCenter']))+ \
+            bytearray(struct.pack('>i',self.fields['yCenter']))
+        
+        #This needs to work on UNSTUFFED byte array
+        def fromByteArray(self, ba):
+            assert (len(ba)==12)
+            self.fields['zoom'] = struct.unpack('>i',ba[0:4])[0]
+            self.fields['xCenter'] = struct.unpack('>i',ba[4:8])[0]
+            self.fields['yCenter'] = struct.unpack('>i',ba[8:12])[0]
+            
     
     #---------- Methods related to serial port handling ---------------
     def __init__(self,portname="/dev/ttyACM0", timeout=1):
@@ -179,8 +202,7 @@ class Boson():
         serial_cmd = frame.raw()
         return serial_cmd
         
-    ####### Poor man's data extractor. Won't work always because of
-    # byte stuffing. Just use for test/debug purposes
+    ####### Poor man's data extractor. reply must be unstuffed please##
     def getDataFromReply(self, reply, commandname):
         _type = None
         length = self.COMMANDS[commandname]['retbytes']
@@ -275,7 +297,7 @@ class Boson():
         
     def getAgcSigmar(self):
         return self.sendCmdAndGetReply('ACGGETSIGMAR')
-        
+                
     def getFpaTempTable(self):
         fpa_temp_table = self.sendCmdAndGetReply('FPAGETTEMPTABLE')
         #print('stuffed packet is %s' % fpa_temp_table)
@@ -298,6 +320,27 @@ class Boson():
             return False
         else:
             assert(True)
+            
+    def getScalerZoom(self):
+        zoom_params = self.SCALER_ZOOM_PARAMS()
+        zoom_params.fromByteArray(self.sendCmdAndGetReply('SCALERGETZOOM'))
+        return zoom_params.fields['zoom']
+        
+    def setScalerZoom(self,value):
+        #Know what is the max you can set and exit if necessary
+        max_zoom = self.sendCmdAndGetReply('SCALERGETMAXZOOM')
+        print ('Max Zoom is %s' % max_zoom)
+        if (value > max_zoom):
+            return
+        
+        #Get Current Zoom parameters    
+        zoom_params = self.SCALER_ZOOM_PARAMS()
+        zoom_params.fromByteArray(self.sendCmdAndGetReply('SCALERGETZOOM'))
+        
+        #Alter Zoom level only
+        zoom_params.fields['zoom'] = value
+        
+        return self.sendCmdAndGetReply('SCALERSETZOOM', zoom_params.toByteArray())
         
     def test_LUT(self):
         print ('Part number is %s' % self.getPartNumber())
