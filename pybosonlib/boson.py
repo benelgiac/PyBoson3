@@ -41,6 +41,8 @@ class Boson():
         'GETSERIAL'           :    { 'id': bytearray([0x00, 0x05, 0x00, 0x02]), 'retbytes': 4},
         'GETCOLORLUT'         :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x04]), 'retbytes': 4, 'type': 'int'},
         'SETCOLORLUT'         :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x03]), 'retbytes': 0},
+        'COLORLUTSETCONTROL'  :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x01]), 'retbytes': 0},
+        'COLORLUTGETCONTROL'  :    { 'id': bytearray([0x00, 0x0B, 0x00, 0x02]), 'retbytes': 4, 'type': 'int'},
         'GETPARTNUMBER'       :    { 'id': bytearray([0x00, 0x05, 0x00, 0x04]), 'retbytes': 20},
         'GETGAINMODE'         :    { 'id': bytearray([0x00, 0x05, 0x00, 0x15]), 'retbytes': 4, 'type': 'int'},
         'SETGAINMODE'         :    { 'id': bytearray([0x00, 0x05, 0x00, 0x14]), 'retbytes': 0},
@@ -93,6 +95,8 @@ class Boson():
         (0x00000001   , 'TRUE'),
         (0x00000000   , 'FALSE'),
     ])
+    
+    _lutstring = ''
     
     class SCALER_ZOOM_PARAMS ():
         
@@ -239,13 +243,24 @@ class Boson():
         return self.sendCmdAndGetReply('GETSERIAL')
     
     def getColorLut(self):
-        return self.LUT[self.sendCmdAndGetReply('GETCOLORLUT')]
+        color_enabled = self.sendCmdAndGetReply('COLORLUTGETCONTROL')
+        if not color_enabled:
+            self._lutstring == 'GREYSCALE'
+            return 'GREYSCALE'
+        else:
+            return self.LUT[self.sendCmdAndGetReply('GETCOLORLUT')]
         
     def getPartNumber(self):
         return self.sendCmdAndGetReply('GETPARTNUMBER')
         
     def setColorLut(self, lutstring):
-        return self.sendCmdAndGetReply('SETCOLORLUT', ToByteArray(_getKeyFromValue(self.LUT, lutstring)))
+        if lutstring == 'GREYSCALE':
+            self._lutstring = 'GREYSCALE'
+            return self.sendCmdAndGetReply('COLORLUTSETCONTROL', ToByteArray(_getKeyFromValue(self.FLR_ENABLE_E,'FALSE')))
+        else:
+            self._lutstring = lutstring
+            self.sendCmdAndGetReply('COLORLUTSETCONTROL', ToByteArray(_getKeyFromValue(self.FLR_ENABLE_E,'TRUE')))
+            return self.sendCmdAndGetReply('SETCOLORLUT', ToByteArray(_getKeyFromValue(self.LUT, lutstring)))
         
     def getGainState(self):
         return self.GAINMODE[self.sendCmdAndGetReply('GETGAINMODE')]
