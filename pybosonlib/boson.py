@@ -67,6 +67,7 @@ class Boson():
         'FPAGETTEMPTABLE'     :    { 'id': bytearray([0x00, 0x02, 0x00, 0x20]), 'retbytes': 64},
         'SCALERGETZOOM'       :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x03]), 'retbytes': 12},
         'SCALERGETMAXZOOM'    :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x03]), 'retbytes': 4, 'type': 'int' },
+        'GETSWVERSION'        :    { 'id': bytearray([0x00, 0x05, 0x00, 0x56]), 'retbytes': 12},
         'SCALERSETZOOM'       :    { 'id': bytearray([0x00, 0x0D, 0x00, 0x02]), 'retbytes': 0},
     }
     
@@ -312,6 +313,16 @@ class Boson():
         
     def getAgcSigmar(self):
         return self.sendCmdAndGetReply('ACGGETSIGMAR')
+        
+    def getSwVersion(self):
+        #This is cheating. It's Michele's fault :)
+        sv = self.SCALER_ZOOM_PARAMS()
+        sv.fromByteArray(self.sendCmdAndGetReply('GETSWVERSION'))
+        major = sv.fields['zoom']
+        minor = sv.fields['xCenter']
+        patch = sv.fields['yCenter']
+        print ('SW version is %d.%d.%d' %(major, minor, patch))
+        
                 
     def getFpaTempTable(self):
         fpa_temp_table = self.sendCmdAndGetReply('FPAGETTEMPTABLE')
