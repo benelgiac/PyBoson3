@@ -23,7 +23,7 @@
 
 import serial,sys
 from _thread import allocate_lock
-from pyboson.pybosonlib.flirprotocols import Frame, Fbp, byteUnstuff, renderToByteArray
+from .flirprotocols import Frame, Fbp, byteUnstuff, renderToByteArray
 from time import sleep
 import struct
 from collections import OrderedDict
