@@ -21,3 +21,4 @@
 #    USA
 
 """PyBoson3 by Giacomo Benelli <benelli.giacomo@gmail.com>"""
+from .boson import BosonControl
