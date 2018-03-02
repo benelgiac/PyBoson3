@@ -134,7 +134,7 @@ class BosonControl():
         self.mutex = allocate_lock()
         self.portname=portname
         self.open_port(timeout)
-        self.started: True
+        self.started= True
 
     def open_port(self, timeout):
 
