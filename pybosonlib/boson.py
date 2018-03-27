@@ -120,7 +120,7 @@ class BosonControl():
             
     __instance = None
     started = False
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if BosonControl.__instance is None:
             BosonControl.__instance = object.__new__(cls)
         return BosonControl.__instance
@@ -158,7 +158,7 @@ class BosonControl():
         if not packet or len(packet)==0:
             return
 
-        print ('%s: %s' % (title,packet))
+        #print ('%s: %s' % (title,packet))
 
 
     def recv_packet(self,extra_title=None):
@@ -193,7 +193,7 @@ class BosonControl():
         if self.serialport.inWaiting():
             self.recv_packet("ignored")
 
-        self.dump (packet, 'Sending packet')
+        #self.dump (packet, 'Sending packet')
         self.serialport.write(packet)
         
     def send_packet(self, packet):
@@ -227,7 +227,7 @@ class BosonControl():
         end = -3
         start = end-length
         status = start - 4
-        print ('Command status is %s' % reply[status:start])
+        #print ('Command status is %s' % reply[status:start])
         if _type == 'int':
             return struct.unpack('>i',reply[start:end])[0]
         elif _type == 'float':
